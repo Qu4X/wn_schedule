@@ -6,14 +6,22 @@ from scrapper import pobierz_liste_planow, pobierz_surowy_plan, przetworz_plan_n
 
 # Subowanie kalendarza
 if "ical" in st.query_params:
+    g_name = st.query_params["ical"]
+    p_id = st.query_params.get("plan_id", "533")
+
     try:
-        # ... (pobieranie danych)
+        # Pobieramy i przetwarzamy plan "w locie"
+        html_content, grupy_z_planu = pobierz_surowy_plan(p_id)
+        dane_planu, _, _ = przetworz_plan_na_grafike(html_content, g_name, grupy_z_planu)
+
+        # Generujemy ICS
         ics_output = generuj_ics(dane_planu, g_name)
 
-        # Zmieniamy na samo wyświetlenie tekstu
-        st.text(ics_output)
+        # Kluczowe: wysyłamy czysty tekst i NATYCHMIAST zatrzymujemy apkę
+        st.write(ics_output)
     except Exception as e:
-        st.text(f"Błąd generowania kalendarza: {str(e)}")
+        st.write(f"Błąd: {e}")
+
     st.stop()
 
 st.set_page_config(page_title="Plan zajęć WN", page_icon="⚓", layout="wide", initial_sidebar_state="expanded")
