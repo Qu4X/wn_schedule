@@ -185,6 +185,7 @@ else:
         st.write("---")
         if st.button("⬅️ Zmień kierunek", use_container_width=True):
             st.query_params.clear()
+            st.query_params["clear"] = "1"  # Flaga dla JS
             st.session_state.plan_id = None
             st.session_state.last_sync = None
             st.rerun()
