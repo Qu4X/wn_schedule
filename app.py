@@ -212,8 +212,7 @@ else:
             st.subheader("📅 Subskrypcja kalendarza")
 
             if wybrana_g != "WSZYSTKIE GRUPY":
-                # Tworzymy link webcal (podmień localhost na swój adres w chmurze później)
-                base_url = "localhost:8501"
+                base_url = "planwn.streamlit.app"
                 params = f"?ical={wybrana_g}&plan_id={st.session_state.plan_id}"
                 webcal_link = f"webcal://{base_url}/{params}"
 
