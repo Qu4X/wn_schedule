@@ -124,7 +124,7 @@ else:
         st.header("Opcje")
         st.markdown(f"**Kierunek:**<br>{st.session_state.plan_name}", unsafe_allow_html=True)
 
-        lista_opcji = ["WSZYSTKIE GRUPY"] + st.session_state.grupy
+        lista_opcji = st.session_state.grupy + ["WSZYSTKIE GRUPY"]
         wybrana_g = st.selectbox("Wybierz widok:", lista_opcji)
 
         st.write("---")
