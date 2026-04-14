@@ -1,17 +1,18 @@
 import streamlit as st
+import html
 from datetime import datetime, timedelta
 from scrapper import pobierz_liste_planow, pobierz_surowy_plan, przetworz_plan_na_grafike, przetworz_plan_wszystkie, \
     generuj_ics
 
-st.set_page_config(page_title="Plan zajęć WN", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="UMG Navigator", page_icon="⚓", layout="wide", initial_sidebar_state="expanded")
 
 STYLE_CSS = """
 <style>
     .block-container { padding-top: 2rem !important; }
     .schedule-grid {
         display: grid;
-        grid-template-columns: 65px repeat(VAR_COLS, 1fr);
-        grid-template-rows: 40px repeat(VAR_ROWS, 4px);
+        grid-template-columns: 65px repeat(var(--grid-cols, 1), 1fr);
+        grid-template-rows: 40px repeat(var(--grid-rows, 1), 4px);
         gap: 0; background-color: #0e1117; border: 1px solid #2d313a;
     }
     .grid-cell { border-right: 1px solid #1d2129; border-bottom: 1px solid #1d2129; }
@@ -60,19 +61,15 @@ def przetworz_wszystkie_cached(html_text, lista_grup):
 @st.cache_data(show_spinner=False)
 def czy_zajecia_w_tygodniu(data_wybrana, data_start_zajec, liczba_tygodni):
     if not data_start_zajec: return True
-
-    # Wyrównujemy obie daty do poniedziałku (początek tygodnia)
     poniedzialek_start = data_start_zajec - timedelta(days=data_start_zajec.weekday())
     poniedzialek_wybrana = data_wybrana - timedelta(days=data_wybrana.weekday())
-
     dni_diff = (poniedzialek_wybrana - poniedzialek_start).days
     tydzien_diff = dni_diff // 7
-
     return 0 <= tydzien_diff < liczba_tygodni
 
 
 # ==========================================
-# INICJALIZACJA ZMIENNYCH (KULOODPORNA)
+# INICJALIZACJA ZMIENNYCH
 # ==========================================
 if 'plan_id' not in st.session_state:
     st.session_state.plan_id = None
@@ -85,7 +82,6 @@ if 'html_cache' not in st.session_state:
 if 'grupy' not in st.session_state:
     st.session_state.grupy = []
 
-# Odzyskiwanie z linku
 if st.session_state.plan_id is None and "plan" in st.query_params:
     plan_id = st.query_params["plan"]
     st.session_state.plan_id = plan_id
@@ -101,10 +97,10 @@ if st.session_state.plan_id is None and "plan" in st.query_params:
     st.session_state.html_cache, st.session_state.grupy = pobierz_plan_cached(plan_id)
     st.session_state.last_sync = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-# Awaryjne dociągnięcie danych (jeśli sesja wyparowała, a ID zostało)
 if st.session_state.plan_id is not None and not st.session_state.grupy:
     st.session_state.html_cache, st.session_state.grupy = pobierz_plan_cached(st.session_state.plan_id)
-# ==========================================
+
+st.markdown(STYLE_CSS, unsafe_allow_html=True)
 
 # EKRAN STARTOWY
 if st.session_state.plan_id is None:
@@ -135,7 +131,6 @@ else:
         st.header("Kalendarz")
         wybrana_data = st.date_input("Pokaż tydzień dla daty:", datetime.now())
 
-        # Przycisk eksportu (widoczny tylko gdy plan jest załadowany)
         if st.session_state.plan_id:
             if wybrana_g != "WSZYSTKIE GRUPY":
                 dane_do_eksportu, _, _ = przetworz_grafike_cached(st.session_state.html_cache, wybrana_g,
@@ -178,30 +173,30 @@ else:
         if min_s <= max_s:
             dni = ["PON", "WT", "ŚR", "CZW", "PT"]
             rows_count = max_s - min_s + 1
-            css = STYLE_CSS.replace("VAR_ROWS", str(rows_count)).replace("VAR_COLS", str(len(st.session_state.grupy)))
-            st.markdown(css, unsafe_allow_html=True)
+            cols_count = len(st.session_state.grupy)
 
             st.subheader("Plan dla wszystkich grup")
             tabs = st.tabs(dni)
 
             for tab_idx, d_name in enumerate(dni):
                 with tabs[tab_idx]:
-                    html = '<div class="schedule-grid">'
-                    html += '<div class="grid-cell header-cell">Czas</div>'
-                    for g in st.session_state.grupy:
-                        html += f'<div class="grid-cell header-cell" title="{g}">{g[:5]}</div>'
+                    zajecia_w_tym_tygodniu = False
+                    html_str = f'<div class="schedule-grid" style="--grid-rows: {rows_count}; --grid-cols: {cols_count};">'
+                    html_str += '<div class="grid-cell header-cell">Czas</div>'
 
-                    # Siatka tła
+                    for g in st.session_state.grupy:
+                        safe_g = html.escape(g)
+                        html_str += f'<div class="grid-cell header-cell" title="{safe_g}">{safe_g[:5]}</div>'
+
                     for s in range(min_s, max_s + 1):
                         row = s - min_s + 2
                         if (s * 5) % 60 == 0:
                             h = 7 + (s * 5 // 60)
-                            html += f'<div class="grid-cell time-cell" style="grid-row: {row} / span 12;">{h:02}:00</div>'
+                            html_str += f'<div class="grid-cell time-cell" style="grid-row: {row} / span 12;">{h:02}:00</div>'
                         for g_idx in range(len(st.session_state.grupy)):
                             if (s - min_s) % 6 == 0:
-                                html += f'<div class="grid-cell" style="grid-column: {g_idx + 2}; grid-row: {row} / span 6;"></div>'
+                                html_str += f'<div class="grid-cell" style="grid-column: {g_idx + 2}; grid-row: {row} / span 6;"></div>'
 
-                    # Wrzucanie kafelków
                     if d_name in dane_all:
                         for start_slot, slots_data in dane_all[d_name].items():
                             r_start = start_slot - min_s + 2
@@ -210,23 +205,34 @@ else:
                                     "data_start") else None
 
                                 if czy_zajecia_w_tygodniu(wybrana_data, start_date_obj, info.get("tygodnie", 1)):
+                                    zajecia_w_tym_tygodniu = True
                                     col = col_start + 2
                                     width = min(info["colspan"], len(st.session_state.grupy) - col_start)
 
-                                    tooltip = f"{info['przedmiot']} | {info['godziny']} | Sala: {info['sala']}"
-                                    if info.get("prowadzacy"): tooltip += f" | {info['prowadzacy']}"
+                                    safe_przed = html.escape(info['przedmiot'])
+                                    safe_godz = html.escape(info['godziny'])
+                                    safe_sala = html.escape(info['sala'])
+                                    safe_prow = html.escape(info.get('prowadzacy', ''))
 
-                                    html += f'<div class="lesson-block" style="grid-column: {col} / span {width}; grid-row: {r_start} / span {info["height"]};" title="{tooltip}">'
-                                    html += f'<div class="lesson-name">{info["przedmiot"]}</div>'
-                                    html += f'<div class="lesson-info">{info["godziny"]}</div>'
+                                    tooltip = html.escape(
+                                        f"{info['przedmiot']} | {info['godziny']} | Sala: {info['sala']}")
+                                    if safe_prow: tooltip += html.escape(f" | {info['prowadzacy']}")
+
+                                    html_str += f'<div class="lesson-block" style="grid-column: {col} / span {width}; grid-row: {r_start} / span {info["height"]};" title="{tooltip}">'
+                                    html_str += f'<div class="lesson-name">{safe_przed}</div>'
+                                    html_str += f'<div class="lesson-info">{safe_godz}</div>'
                                     if info["height"] > 9:
-                                        html += f'<div class="lesson-info">Sala: {info["sala"]}</div>'
-                                        if info.get(
-                                            "prowadzacy"): html += f'<div class="lesson-teacher">{info["prowadzacy"]}</div>'
-                                    html += '</div>'
+                                        html_str += f'<div class="lesson-info">Sala: {safe_sala}</div>'
+                                        if safe_prow:
+                                            html_str += f'<div class="lesson-teacher">{safe_prow}</div>'
+                                    html_str += '</div>'
 
-                    html += '</div>'  # Zamknięcie głównego div'a grida!
-                    st.markdown(html, unsafe_allow_html=True)
+                    html_str += '</div>'
+
+                    if not zajecia_w_tym_tygodniu:
+                        st.info("Brak zajęć w tym tygodniu")
+                    else:
+                        st.markdown(html_str, unsafe_allow_html=True)
 
     # ==========================================
     # RYSOWANIE GRAFIKI - WIDOK POJEDYNCZEJ GRUPY
@@ -237,23 +243,22 @@ else:
         if min_s <= max_s:
             dni = ["PON", "WT", "ŚR", "CZW", "PT"]
             rows_count = max_s - min_s + 1
-            css = STYLE_CSS.replace("VAR_ROWS", str(rows_count)).replace("VAR_COLS", "5")
-            st.markdown(css, unsafe_allow_html=True)
+            zajecia_w_tym_tygodniu = False
 
             st.subheader(f"Plan dla {wybrana_g}")
 
-            html = '<div class="schedule-grid">'
-            html += '<div class="grid-cell header-cell">Czas</div>'
-            for d in dni: html += f'<div class="grid-cell header-cell">{d}</div>'
+            html_str = f'<div class="schedule-grid" style="--grid-rows: {rows_count}; --grid-cols: 5;">'
+            html_str += '<div class="grid-cell header-cell">Czas</div>'
+            for d in dni: html_str += f'<div class="grid-cell header-cell">{d}</div>'
 
             for s in range(min_s, max_s + 1):
                 row = s - min_s + 2
                 if (s * 5) % 60 == 0:
                     h = 7 + (s * 5 // 60)
-                    html += f'<div class="grid-cell time-cell" style="grid-row: {row} / span 12;">{h:02}:00</div>'
+                    html_str += f'<div class="grid-cell time-cell" style="grid-row: {row} / span 12;">{h:02}:00</div>'
                 for d_idx in range(len(dni)):
                     if (s - min_s) % 6 == 0:
-                        html += f'<div class="grid-cell" style="grid-column: {d_idx + 2}; grid-row: {row} / span 6;"></div>'
+                        html_str += f'<div class="grid-cell" style="grid-column: {d_idx + 2}; grid-row: {row} / span 6;"></div>'
 
             for d_idx, d_name in enumerate(dni):
                 col = d_idx + 2
@@ -263,19 +268,30 @@ else:
                             "data_start") else None
 
                         if czy_zajecia_w_tygodniu(wybrana_data, start_date_obj, info.get("tygodnie", 1)):
+                            zajecia_w_tym_tygodniu = True
                             r_start = start_slot - min_s + 2
-                            tooltip = f"{info['przedmiot']} | {info['godziny']} | Sala: {info['sala']}"
-                            if info.get("prowadzacy"): tooltip += f" | {info['prowadzacy']}"
 
-                            html += f'<div class="lesson-block" style="grid-column: {col}; grid-row: {r_start} / span {info["height"]};" title="{tooltip}">'
-                            html += f'<div class="lesson-name">{info["przedmiot"]}</div>'
-                            html += f'<div class="lesson-info">{info["godziny"]}</div>'
+                            safe_przed = html.escape(info['przedmiot'])
+                            safe_godz = html.escape(info['godziny'])
+                            safe_sala = html.escape(info['sala'])
+                            safe_prow = html.escape(info.get('prowadzacy', ''))
+
+                            tooltip = html.escape(f"{info['przedmiot']} | {info['godziny']} | Sala: {info['sala']}")
+                            if safe_prow: tooltip += html.escape(f" | {info['prowadzacy']}")
+
+                            html_str += f'<div class="lesson-block" style="grid-column: {col}; grid-row: {r_start} / span {info["height"]};" title="{tooltip}">'
+                            html_str += f'<div class="lesson-name">{safe_przed}</div>'
+                            html_str += f'<div class="lesson-info">{safe_godz}</div>'
 
                             if info["height"] > 9:
-                                html += f'<div class="lesson-info">Sala: {info["sala"]}</div>'
-                                if info.get(
-                                    "prowadzacy"): html += f'<div class="lesson-teacher">{info["prowadzacy"]}</div>'
-                            html += '</div>'
+                                html_str += f'<div class="lesson-info">Sala: {safe_sala}</div>'
+                                if safe_prow:
+                                    html_str += f'<div class="lesson-teacher">{safe_prow}</div>'
+                            html_str += '</div>'
 
-            html += '</div>'
-            st.markdown(html, unsafe_allow_html=True)
+            html_str += '</div>'
+
+            if not zajecia_w_tym_tygodniu:
+                st.info("Brak zajęć w tym tygodniu")
+            else:
+                st.markdown(html_str, unsafe_allow_html=True)
