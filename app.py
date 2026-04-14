@@ -315,7 +315,7 @@ else:
                                     html_str += f'<div class="lesson-name">{safe_przed}</div>'
                                     html_str += f'<div class="lesson-info">{safe_godz}</div>'
                                     if info["height"] > 9:
-                                        html_str += f'<div class="lesson-info">Sala: {safe_sala}</div>'
+                                        html_str += f'<div class="lesson-info">{safe_sala}</div>'
                                         if safe_prow:
                                             html_str += f'<div class="lesson-teacher">{safe_prow}</div>'
                                     html_str += '</div>'
