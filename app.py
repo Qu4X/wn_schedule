@@ -7,20 +7,11 @@ from scrapper import pobierz_liste_planow, pobierz_surowy_plan, przetworz_plan_n
 # Subowanie kalendarza
 if "ical" in st.query_params:
     try:
-        g_name = st.query_params["ical"]
-        p_id = st.query_params.get("plan_id", "533")
+        # ... (pobieranie danych)
+        ics_output = generuj_ics(dane_planu, g_name)
 
-        # Pobieramy surowy HTML
-        html_content, lista_grup = pobierz_surowy_plan(p_id)
-
-        # Przetwarzamy plan dla konkretnej grupy
-        # Używamy Twojej funkcji przetworz_plan_na_grafike, aby dostać dane konkretnej grupy
-        dane_planu, _, _ = przetworz_plan_na_grafike(html_content, g_name, lista_grup)
-
-        # Generujemy plik ICS (wymaga dekodowania do tekstu)
-        ics_output = generuj_ics(dane_planu, f"Plan {g_name}")
-
-        st.text(ics_output.decode("utf-8"))
+        # Zmieniamy na samo wyświetlenie tekstu
+        st.text(ics_output)
     except Exception as e:
         st.text(f"Błąd generowania kalendarza: {str(e)}")
     st.stop()

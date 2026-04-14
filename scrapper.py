@@ -279,4 +279,7 @@ def generuj_ics(dane_planu, nazwa_grupy):
                         if isinstance(info, dict) and "przedmiot" in info:
                             _dodaj_event(info)
 
-    return cal.to_ical().decode("utf-8")
+    output = cal.to_ical()
+    if isinstance(output, bytes):
+        return output.decode("utf-8")
+    return output
