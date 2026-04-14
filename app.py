@@ -215,7 +215,7 @@ else:
                                     safe_prow = html.escape(info.get('prowadzacy', ''))
 
                                     tooltip = html.escape(
-                                        f"{info['przedmiot']} | {info['godziny']} | Sala: {info['sala']}")
+                                        f"{info['przedmiot']} | {info['godziny']} | {info['sala']}")
                                     if safe_prow: tooltip += html.escape(f" | {info['prowadzacy']}")
 
                                     html_str += f'<div class="lesson-block" style="grid-column: {col} / span {width}; grid-row: {r_start} / span {info["height"]};" title="{tooltip}">'

@@ -121,8 +121,11 @@ def _wspolny_parser_html(html_text, target_idx=None, _soup=None):
         slot_start, col_start = int(parts[2]), int(parts[3])
         colspan = int(td.get('colspan', 1))
 
-        if target_idx is not None and not (col_start <= target_idx < col_start + colspan):
-            continue
+        if target_idx is not None:
+            is_in_range = col_start <= target_idx < (col_start + colspan)
+            # Dodatkowo sprawdzamy, czy to nie są zajęcia ogólne (np. dla całego roku)
+            if not is_in_range:
+                continue
 
         drag = td.find('div', class_='drag')
         if drag:
@@ -144,7 +147,7 @@ def _wspolny_parser_html(html_text, target_idx=None, _soup=None):
             tygodnie_match = re.search(r"\[il\.tyg:\s*(\d+)\]", td_text)
 
             data_start = data_start_match.group(1) if data_start_match else None
-            liczba_tygodni = int(tygodnie_match.group(1)) if tygodnie_match else 1
+            liczba_tygodni = int(tygodnie_match.group(1)) if tygodnie_match else 8
 
             if match_prow:
                 prowadzacy = match_prow.group(1).strip()
@@ -196,14 +199,40 @@ def _wspolny_parser_html(html_text, target_idx=None, _soup=None):
 def przetworz_plan_na_grafike(html_text, wybrana_grupa, lista_grup, _soup=None):
     if wybrana_grupa not in lista_grup:
         return {}, 0, 0
+
     target_idx = lista_grup.index(wybrana_grupa)
-    dane_z_kolumnami, min_slot, max_slot = _wspolny_parser_html(html_text, target_idx, _soup)
+    dane_z_kolumnami, min_slot, max_slot = _wspolny_parser_html(html_text, target_idx=None, _soup=_soup)
 
     dane_plaskie = {d: {} for d in DNI_MAPA.values()}
+
     for dzien, sloty in dane_z_kolumnami.items():
         for slot_start, cols in sloty.items():
-            if cols:
-                dane_plaskie[dzien][slot_start] = cols[min(cols.keys(), key=lambda k: abs(k - target_idx))]
+            wybrane_info = None
+
+            # SORTUJEMY KOLUMNY: Najpierw te, które są najbliżej naszej grupy
+            # To zapobiegnie nadpisaniu Twoich ćwiczeń przez wykład ogólny,
+            # jeśli oba są w tym samym slocie.
+            posortowane_kolumny = sorted(cols.keys(), key=lambda k: abs(k - target_idx))
+
+            for col_start in posortowane_kolumny:
+                info = cols[col_start]
+                colspan = info.get("colspan", 1)
+
+                # WARUNEK 1: Dokładne przykrycie Twojej grupy
+                if col_start <= target_idx < (col_start + colspan):
+                    wybrane_info = info
+                    break
+
+                # WARUNEK 2: Specjalny przypadek dla "BiSS" i Auli (kolumna 0 i duży colspan)
+                # Jeśli kafelek zaczyna się w kolumnie 0 i jest szeroki (np. min 5 kolumn),
+                # traktujemy go jako ogólny, o ile nie mamy już nic lepszego.
+                if col_start == 0 and colspan > 5:
+                    wybrane_info = info
+                    # Nie robimy break, bo może dalej w pętli znajdziemy coś,
+                    # co jeszcze lepiej pasuje do naszej konkretnej kolumny.
+
+            if wybrane_info:
+                dane_plaskie[dzien][slot_start] = wybrane_info
 
     return dane_plaskie, min_slot, max_slot
 
