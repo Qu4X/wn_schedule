@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from scrapper import pobierz_liste_planow, pobierz_surowy_plan, przetworz_plan_na_grafike, przetworz_plan_wszystkie, \
     generuj_ics
 
-st.set_page_config(page_title="UMG Navigator", page_icon="⚓", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Plan zajęć WN", page_icon="⚓", layout="wide", initial_sidebar_state="expanded")
 
 STYLE_CSS = """
 <style>
