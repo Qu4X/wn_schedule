@@ -13,10 +13,6 @@ logger = logging.getLogger(__name__)
 DNI_MAPA = {"1": "PON", "2": "WT", "3": "ŚR", "4": "CZW", "5": "PT", "6": "SOB"}
 
 SLOWNIK_PRZEDMIOTOW = {
-    "ZS": "Zarządzanie Statkiem",
-    "JA": "Język Angielski",
-    "Nawig": "Nawigacja",
-    "Met": "Meteorologia i Oceanografia"
 }
 
 
