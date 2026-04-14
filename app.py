@@ -1,9 +1,28 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from datetime import datetime, timedelta
 from scrapper import pobierz_liste_planow, pobierz_surowy_plan, przetworz_plan_na_grafike, przetworz_plan_wszystkie, \
     generuj_ics
 
 st.set_page_config(page_title="Plan zajęć WN", layout="wide", initial_sidebar_state="expanded")
+
+# PAMIĘĆ PRZEGLĄDARKI (AUTOMATYCZNE ŁADOWANIE)
+components.html("""
+<script>
+    const urlParams = new URLSearchParams(window.parent.location.search);
+    if (urlParams.has('clear')) {
+        window.parent.localStorage.removeItem('umg_plan_id');
+        window.parent.location.search = '';
+    } else if (urlParams.has('plan')) {
+        window.parent.localStorage.setItem('umg_plan_id', urlParams.get('plan'));
+    } else {
+        const savedPlan = window.parent.localStorage.getItem('umg_plan_id');
+        if (savedPlan) {
+            window.parent.location.search = '?plan=' + savedPlan;
+        }
+    }
+</script>
+""", height=0, width=0)
 
 STYLE_CSS = """
 <style>
