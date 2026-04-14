@@ -125,7 +125,7 @@ else:
         st.markdown(f"**Kierunek:**<br>{st.session_state.plan_name}", unsafe_allow_html=True)
 
         lista_opcji = st.session_state.grupy + ["WSZYSTKIE GRUPY"]
-        wybrana_g = st.selectbox("Wybierz widok:", lista_opcji)
+        wybrana_g = st.selectbox("Wybierz grupę:", lista_opcji)
 
         st.write("---")
         st.header("Kalendarz")
