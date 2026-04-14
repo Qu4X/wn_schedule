@@ -1,0 +1,12 @@
+# Twój testowy skrypt (podmień na dokładną nazwę pliku)
+test_scrapper.py
+test*.py
+
+# Środowisko wirtualne
+.venv/
+venv/
+
+# Pliki systemowe PyCharma i cache Pythona
+.idea/
+__pycache__/
+*.pyc
