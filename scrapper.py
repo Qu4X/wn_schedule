@@ -143,7 +143,7 @@ def _wspolny_parser_html(html_text, target_idx=None, _soup=None):
             tygodnie_match = re.search(r"\[il\.tyg:\s*(\d+)\]", td_text)
 
             data_start = data_start_match.group(1) if data_start_match else None
-            liczba_tygodni = int(tygodnie_match.group(1)) if tygodnie_match else 8
+            liczba_tygodni = int(tygodnie_match.group(1)) if tygodnie_match else 20
 
             if match_prow:
                 prowadzacy = match_prow.group(1).strip()

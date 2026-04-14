@@ -1,6 +1,6 @@
 import streamlit as st
 import html
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from scrapper import pobierz_liste_planow, pobierz_surowy_plan, przetworz_plan_na_grafike, przetworz_plan_wszystkie, \
     generuj_ics
 
@@ -9,34 +9,89 @@ st.set_page_config(page_title="Plan zajęć WN", page_icon="⚓", layout="wide",
 STYLE_CSS = """
 <style>
     .block-container { padding-top: 2rem !important; }
+
     .schedule-grid {
         display: grid;
         grid-template-columns: 65px repeat(var(--grid-cols, 1), 1fr);
         grid-template-rows: 40px repeat(var(--grid-rows, 1), 4px);
-        gap: 0; background-color: #0e1117; border: 1px solid #2d313a;
+        gap: 0 !important; 
+        background-color: var(--background-color) !important;
+        /* Wyraźna ramka zewnętrzna całości */
+        box-shadow: 0 0 0 2px var(--secondary-background-color);
+        color: var(--text-color) !important;
     }
-    .grid-cell { border-right: 1px solid #1d2129; border-bottom: 1px solid #1d2129; }
+
+    /* Wszystkie komórki siatki */
+    .grid-cell { 
+        border-right: 1px solid rgba(128, 128, 128, 0.2) !important; 
+        border-bottom: 1px solid rgba(128, 128, 128, 0.2) !important; 
+    }
+
+    /* Nagłówki dni (PON, WT...) */
     .header-cell { 
-        background-color: #1a1e26; color: white; font-weight: bold; 
+        background-color: var(--secondary-background-color) !important;
+        color: var(--text-color) !important; 
+        font-weight: bold !important; 
         display: flex; align-items: center; justify-content: center; 
-        border-bottom: 2px solid #2d313a;
+        /* KLUCZOWA LINIA POZIOMA */
+        border-bottom: 2px solid rgba(128, 128, 128, 0.5) !important;
+        border-right: 1px solid rgba(128, 128, 128, 0.2) !important;
+        z-index: 20;
     }
+
+    /* Kolumna z godzinami */
     .time-cell { 
-        grid-column: 1; display: flex; align-items: center; justify-content: flex-end; 
-        padding-right: 8px; color: #fff; font-size: 1rem; font-weight: 500; 
-        border-right: 2px solid #2d313a; 
+        grid-column: 1; 
+        display: flex; align-items: top; justify-content: flex-end; 
+        padding-right: 8px; 
+        color: var(--text-color) !important; 
+        font-size: 0.85rem !important; 
+        font-weight: 600 !important; 
+        background-color: var(--secondary-background-color) !important;
+        /* KLUCZOWA LINIA PIONOWA */
+        border-right: 2px solid rgba(128, 128, 128, 0.5) !important;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.2) !important;
+        z-index: 15;
     }
+
+    /* Kafelki zajęć */
     .lesson-block {
-        background-color: #1a4f8a; color: white; border: 1px solid #266cb7; border-radius: 4px;
-        padding: 4px; display: flex; flex-direction: column; justify-content: flex-start;
-        z-index: 10; line-height: 1.1; overflow: hidden;
+        background-color: #1a4f8a !important; 
+        color: white !important; 
+        border: 1px solid #003366 !important; 
+        border-radius: 4px !important;
+        padding: 4px; 
+        display: flex; flex-direction: column; justify-content: flex-start;
+        z-index: 10; 
+        line-height: 1.1; 
+        overflow: hidden;
+        margin: 1px !important;
     }
-    .lesson-name { font-size: 0.85rem; font-weight: bold; margin-bottom: 2px; }
-    .lesson-info { font-size: 0.75rem; opacity: 0.9; margin-bottom: 1px; }
-    .lesson-teacher { font-size: 0.7rem; margin-top: auto; font-style: italic; opacity: 0.8; padding-top: 3px; border-top: 1px solid rgba(255,255,255,0.1); }
+
+.lesson-name { 
+        font-size: 0.8rem !important; 
+        font-weight: bold !important; 
+        margin-bottom: 2px !important; 
+        color: white !important; 
+    }
+    .lesson-info { 
+        font-size: 0.7rem !important; 
+        opacity: 0.9 !important; 
+        margin-bottom: 1px !important; 
+        color: white !important; 
+    }
+    .lesson-teacher { 
+        font-size: 0.65rem !important; /* Wymuszamy mały rozmiar */
+        margin-top: auto !important; 
+        font-style: italic !important; 
+        opacity: 0.8 !important; 
+        padding-top: 3px !important; 
+        border-top: 1px solid rgba(255,255,255,0.2) !important; 
+        color: white !important;
+        line-height: 1.0 !important;
+    }
 </style>
 """
-
 
 @st.cache_data(show_spinner="Pobieram listę kierunków...")
 def pobierz_liste_cached():
