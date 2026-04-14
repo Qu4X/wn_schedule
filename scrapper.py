@@ -77,6 +77,11 @@ def pobierz_surowy_plan(plan_id):
     grupy = []
     for h in soup.find_all("td", class_="komopcji"):
         txt = h.get_text(strip=True)
+
+        # FILTR: Ignorujemy ETMON, nawet jeśli system dokleił tam inne dane
+        if "ETMON" in txt:
+            continue
+
         if any(x in txt for x in ["GR.", "ER", "L.", "TM"]):
             if txt in grupy: break
             grupy.append(txt)
