@@ -206,36 +206,36 @@ else:
         st.header("Kalendarz")
         wybrana_data = st.date_input("Pokaż tydzień dla daty:", datetime.now())
 
-        if st.session_state.plan_id:
-            st.write("---")
-            st.subheader("📅 Subskrypcja kalendarza")
-
-            if wybrana_g != "WSZYSTKIE GRUPY":
-                base_url = "planwn.streamlit.app"
-                params = f"?ical={wybrana_g}&plan_id={st.session_state.plan_id}"
-                webcal_link = f"webcal://{base_url}/{params}"
-
-                # Przycisk otwierający aplikację kalendarza
-                st.markdown(
-                    f"""
-                            <a href="{webcal_link}">
-                                <button style="
-                                    width: 100%; background-color: #1a4f8a; color: white;
-                                    padding: 10px; border: none; border-radius: 5px;
-                                    cursor: pointer; font-weight: bold;
-                                ">
-                                    ➕ Subskrybuj w telefonie/PC
-                                </button>
-                            </a>
-                            """,
-                    unsafe_allow_html=True
-                )
-
-                # Zapasowy link do skopiowania (np. dla Google Calendar)
-                st.caption("Dla Google Calendar skopiuj poniższy link:")
-                st.code(f"http://{base_url}/{params}", language=None)
-            else:
-                st.info("Wybierz grupę, aby aktywować subskrypcję iCal.")
+        # if st.session_state.plan_id:
+        #     st.write("---")
+        #     st.subheader("📅 Subskrypcja kalendarza")
+        #
+        #     if wybrana_g != "WSZYSTKIE GRUPY":
+        #         base_url = "planwn.streamlit.app"
+        #         params = f"?ical={wybrana_g}&plan_id={st.session_state.plan_id}"
+        #         webcal_link = f"webcal://{base_url}/{params}"
+        #
+        #         # Przycisk otwierający aplikację kalendarza
+        #         st.markdown(
+        #             f"""
+        #                     <a href="{webcal_link}">
+        #                         <button style="
+        #                             width: 100%; background-color: #1a4f8a; color: white;
+        #                             padding: 10px; border: none; border-radius: 5px;
+        #                             cursor: pointer; font-weight: bold;
+        #                         ">
+        #                             ➕ Subskrybuj w telefonie/PC
+        #                         </button>
+        #                     </a>
+        #                     """,
+        #             unsafe_allow_html=True
+        #         )
+        #
+        #         # Zapasowy link do skopiowania (np. dla Google Calendar)
+        #         st.caption("Dla Google Calendar skopiuj poniższy link:")
+        #         st.code(f"http://{base_url}/{params}", language=None)
+        #     else:
+        #         st.info("Wybierz grupę, aby aktywować subskrypcję iCal.")
 
         st.write("---")
         if st.button("🔄 Odśwież dane z serwera", use_container_width=True):
