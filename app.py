@@ -4,6 +4,27 @@ from datetime import datetime, timedelta, time
 from scrapper import pobierz_liste_planow, pobierz_surowy_plan, przetworz_plan_na_grafike, przetworz_plan_wszystkie, \
     generuj_ics
 
+# Subowanie kalendarza
+if "ical" in st.query_params:
+    try:
+        g_name = st.query_params["ical"]
+        p_id = st.query_params.get("plan_id", "533")
+
+        # Pobieramy surowy HTML
+        html_content, lista_grup = pobierz_surowy_plan(p_id)
+
+        # Przetwarzamy plan dla konkretnej grupy
+        # Używamy Twojej funkcji przetworz_plan_na_grafike, aby dostać dane konkretnej grupy
+        dane_planu, _, _ = przetworz_plan_na_grafike(html_content, g_name, lista_grup)
+
+        # Generujemy plik ICS (wymaga dekodowania do tekstu)
+        ics_output = generuj_ics(dane_planu, f"Plan {g_name}")
+
+        st.text(ics_output.decode("utf-8"))
+    except Exception as e:
+        st.text(f"Błąd generowania kalendarza: {str(e)}")
+    st.stop()
+
 st.set_page_config(page_title="Plan zajęć WN", page_icon="⚓", layout="wide", initial_sidebar_state="expanded")
 
 STYLE_CSS = """
@@ -187,19 +208,36 @@ else:
         wybrana_data = st.date_input("Pokaż tydzień dla daty:", datetime.now())
 
         if st.session_state.plan_id:
+            st.write("---")
+            st.subheader("📅 Subskrypcja kalendarza")
+
             if wybrana_g != "WSZYSTKIE GRUPY":
-                dane_do_eksportu, _, _ = przetworz_grafike_cached(st.session_state.html_cache, wybrana_g,
-                                                                  tuple(st.session_state.grupy))
-                ics_data = generuj_ics(dane_do_eksportu, st.session_state.plan_name)
-                st.download_button(
-                    label=f"📅 Eksportuj {wybrana_g} (.ics)",
-                    data=ics_data,
-                    file_name=f"plan_{wybrana_g}.ics",
-                    mime="text/calendar",
-                    use_container_width=True
+                # Tworzymy link webcal (podmień localhost na swój adres w chmurze później)
+                base_url = "localhost:8501"
+                params = f"?ical={wybrana_g}&plan_id={st.session_state.plan_id}"
+                webcal_link = f"webcal://{base_url}/{params}"
+
+                # Przycisk otwierający aplikację kalendarza
+                st.markdown(
+                    f"""
+                            <a href="{webcal_link}">
+                                <button style="
+                                    width: 100%; background-color: #1a4f8a; color: white;
+                                    padding: 10px; border: none; border-radius: 5px;
+                                    cursor: pointer; font-weight: bold;
+                                ">
+                                    ➕ Subskrybuj w telefonie/PC
+                                </button>
+                            </a>
+                            """,
+                    unsafe_allow_html=True
                 )
+
+                # Zapasowy link do skopiowania (np. dla Google Calendar)
+                st.caption("Dla Google Calendar skopiuj poniższy link:")
+                st.code(f"http://{base_url}/{params}", language=None)
             else:
-                st.info("Wybierz konkretną grupę wyżej, aby wyeksportować jej plan do pliku .ics")
+                st.info("Wybierz grupę, aby aktywować subskrypcję iCal.")
 
         st.write("---")
         if st.button("🔄 Odśwież dane z serwera", use_container_width=True):

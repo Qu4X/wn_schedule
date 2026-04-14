@@ -242,16 +242,20 @@ def przetworz_plan_wszystkie(html_text, lista_grup):
     return _wspolny_parser_html(html_text, target_idx=None)
 
 
-def generuj_ics(dane_planu, nazwa_planu):
+def generuj_ics(dane_planu, nazwa_grupy):
     cal = Calendar()
-    cal.add('prodid', '-//UMG Navigator//umg.edu.pl//')
+    cal.add('prodid', f'-//UMG Navigator//{nazwa_grupy}//')
     cal.add('version', '2.0')
+    cal.add('x-wr-calname', f'Plan {nazwa_grupy}') # Automatyczna nazwa w apce
+    cal.add('x-wr-timezone', 'Europe/Warsaw')
 
     def _dodaj_event(info):
         if not info.get("data_start"): return
         try:
-            start_dt = datetime.strptime(f"{info['data_start']} {info['godziny'].split(' - ')[0]}", "%Y-%m-%d %H:%M")
-            koniec_dt = datetime.strptime(f"{info['data_start']} {info['godziny'].split(' - ')[1]}", "%Y-%m-%d %H:%M")
+            # Poprawione parsowanie godzin
+            g_start, g_koniec = info['godziny'].split(' - ')
+            start_dt = datetime.strptime(f"{info['data_start']} {g_start}", "%Y-%m-%d %H:%M")
+            koniec_dt = datetime.strptime(f"{info['data_start']} {g_koniec}", "%Y-%m-%d %H:%M")
 
             for t in range(info.get("tygodnie", 1)):
                 event = Event()
@@ -262,15 +266,17 @@ def generuj_ics(dane_planu, nazwa_planu):
                 event.add('description', f"Prowadzący: {info['prowadzacy']}")
                 cal.add_component(event)
         except Exception as e:
-            logger.warning(f"ICS - pominięto wydarzenie {info.get('przedmiot')}: {e}")
+            logger.warning(f"ICS - pominięto: {e}")
 
-    for dzien_nazwa, sloty in dane_planu.items():
-        for slot, slot_data in sloty.items():
-            if "przedmiot" in slot_data:
-                _dodaj_event(slot_data)
-            else:
-                for col_idx, info in slot_data.items():
-                    if isinstance(info, dict) and "przedmiot" in info:
-                        _dodaj_event(info)
+    # Obsługa różnych formatów danych wejściowych
+    if isinstance(dane_planu, dict):
+        for dzien_nazwa, sloty in dane_planu.items():
+            for slot, slot_data in sloty.items():
+                if "przedmiot" in slot_data:
+                    _dodaj_event(slot_data)
+                else:
+                    for col_idx, info in slot_data.items():
+                        if isinstance(info, dict) and "przedmiot" in info:
+                            _dodaj_event(info)
 
-    return cal.to_ical()
+    return cal.to_ical().decode("utf-8")
