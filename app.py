@@ -200,11 +200,28 @@ else:
         st.markdown(f"**Kierunek:**<br>{st.session_state.plan_name}", unsafe_allow_html=True)
 
         lista_opcji = st.session_state.grupy + ["WSZYSTKIE GRUPY"]
-        wybrana_g = st.selectbox("Wybierz grupę:", lista_opcji)
+        wybrana_g = st.pills("Wybierz grupę:", lista_opcji, selection_mode="single")
 
-        st.write("---")
         st.header("Kalendarz")
-        wybrana_data = st.date_input("Pokaż tydzień dla daty:", datetime.now())
+
+        # 1. Obliczamy poniedziałek bieżącego tygodnia
+        dzisiaj = datetime.now().date()
+        poniedzialek_biezacy = dzisiaj - timedelta(days=dzisiaj.weekday())
+
+        # 2. Generujemy listę 12 tygodni (ok. 3 miesiące do przodu)
+        lista_tygodni = [poniedzialek_biezacy + timedelta(weeks=i) for i in range(12)]
+        etykiety = [t.strftime("%d.%m") for t in lista_tygodni]
+
+        # 3. Wyświetlamy pigułki - brak klawiatury na mobile
+        wybor_str = st.pills(
+            "Wybierz tydzień (od poniedziałku):",
+            options=etykiety,
+            selection_mode="single",
+            default=etykiety[0]
+        )
+
+        # 4. Mapujemy wybór z powrotem na obiekt daty dla reszty Twojej logiki
+        wybrana_data = lista_tygodni[etykiety.index(wybor_str)]
 
         # if st.session_state.plan_id:
         #     st.write("---")
