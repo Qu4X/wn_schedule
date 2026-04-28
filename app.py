@@ -146,34 +146,27 @@ def czy_zajecia_w_tygodniu(data_wybrana, data_start_zajec, liczba_tygodni):
 # ==========================================
 # INICJALIZACJA ZMIENNYCH
 # ==========================================
-if 'plan_id' not in st.session_state:
+# Pobieramy plan bezpośrednio z linku (paska adresu)
+url_plan_id = st.query_params.get("plan")
+
+if "plan_id" not in st.session_state:
     st.session_state.plan_id = None
-if 'plan_name' not in st.session_state:
-    st.session_state.plan_name = None
-if 'last_sync' not in st.session_state:
-    st.session_state.last_sync = None
-if 'html_cache' not in st.session_state:
-    st.session_state.html_cache = ""
-if 'grupy' not in st.session_state:
-    st.session_state.grupy = []
 
-if st.session_state.plan_id is None and "plan" in st.query_params:
-    plan_id = st.query_params["plan"]
-    st.session_state.plan_id = plan_id
-
+# Jeśli w linku jest plan, a w sesji go nie ma (np. po odświeżeniu) -> Ładujemy
+if url_plan_id and st.session_state.plan_id != url_plan_id:
     plany = pobierz_liste_cached()
-    znaleziona_nazwa = "Nieznany plan"
-    for nazwa, p_id in plany.items():
-        if p_id == plan_id:
-            znaleziona_nazwa = nazwa
-            break
+    # Szukamy nazwy kierunku (ważne: rzutowanie na str, bo query_params to zawsze string)
+    znaleziona_nazwa = next((k for k, v in plany.items() if str(v) == str(url_plan_id)), "Nieznany kierunek")
 
+    st.session_state.plan_id = url_plan_id
     st.session_state.plan_name = znaleziona_nazwa
-    st.session_state.html_cache, st.session_state.grupy = pobierz_plan_cached(plan_id)
+    st.session_state.html_cache, st.session_state.grupy = pobierz_plan_cached(url_plan_id)
     st.session_state.last_sync = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-if st.session_state.plan_id is not None and not st.session_state.grupy:
-    st.session_state.html_cache, st.session_state.grupy = pobierz_plan_cached(st.session_state.plan_id)
+# Reszta zmiennych
+if 'last_sync' not in st.session_state: st.session_state.last_sync = None
+if 'html_cache' not in st.session_state: st.session_state.html_cache = ""
+if 'grupy' not in st.session_state: st.session_state.grupy = []
 
 st.markdown(STYLE_CSS, unsafe_allow_html=True)
 
@@ -184,12 +177,14 @@ if st.session_state.plan_id is None:
     if plany:
         wybor = st.selectbox("Wybierz kierunek:", list(plany.keys()))
         if st.button("Załaduj"):
-            st.query_params["plan"] = plany[wybor]
-            html_text, grupy = pobierz_plan_cached(plany[wybor])
-            st.session_state.html_cache = html_text
-            st.session_state.grupy = grupy
-            st.session_state.plan_id = plany[wybor]
+            # Zapisujemy do linku
+            id_planu = str(plany[wybor])
+            st.query_params["plan"] = id_planu
+
+            # Wymuszamy załadowanie do sesji przed rerunem
+            st.session_state.plan_id = id_planu
             st.session_state.plan_name = wybor
+            st.session_state.html_cache, st.session_state.grupy = pobierz_plan_cached(id_planu)
             st.session_state.last_sync = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             st.rerun()
 
@@ -200,7 +195,21 @@ else:
         st.markdown(f"**Kierunek:**<br>{st.session_state.plan_name}", unsafe_allow_html=True)
 
         lista_opcji = st.session_state.grupy + ["WSZYSTKIE GRUPY"]
-        wybrana_g = st.pills("Wybierz grupę:", lista_opcji, selection_mode="single")
+
+        # 1. Odczytujemy grupę z linku (jeśli istnieje)
+        url_grupa = st.query_params.get("grupa", "WSZYSTKIE GRUPY")
+        if url_grupa not in lista_opcji:
+            url_grupa = "WSZYSTKIE GRUPY"
+
+        # 2. Wyświetlamy wybór z ustawioną domyślną wartością
+        wybrana_g = st.pills("Wybierz grupę:", lista_opcji, selection_mode="single", default=url_grupa)
+
+        # Zabezpieczenie przed odznaczeniem (jeśli użytkownik kliknie aktywną pigułkę)
+        if not wybrana_g:
+            wybrana_g = "WSZYSTKIE GRUPY"
+
+        # 3. Zapisujemy aktualny wybór do linku
+        st.query_params["grupa"] = wybrana_g
 
         st.header("Kalendarz")
 
